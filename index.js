@@ -11,6 +11,7 @@ let bodyParser = require('simple-bodyparser')
 let mime = require('mime-types')
 //let nodeify = require('bluebird-nodeify')
 let rimraf = require('rimraf')
+let mkdirp = require('mkdirp')
 
 const NODE_ENV = process.env.NODE_ENV || 'development'
 const PORT = process.env.PORT || 8000;
@@ -59,9 +60,48 @@ function main() {
         promise.then(next);
     });
 
+    app.put('*', setFileMeta, setDirInfo, (req, res, next) => {
+        async function createDirAndFile () {
+            if (req.stat) return res.send(405, 'File exists');
+
+            console.log("DIR: " + req.dirPath);
+            await mkdirp.promise(req.dirPath);
+
+            if(!req.isDir) req.pipe(fs.createWriteStream(req.filePath));
+            res.end();
+        }
+
+        let promise = createDirAndFile();
+        promise.then(next);
+    });
+
+
+    app.post('*', setFileMeta, setDirInfo, (req, res, next) => {
+        async function updateFile () {
+            if (!req.stat) return res.send(405, 'File not exists');
+            if (req.isDir) return res.send(405, 'Path is a directory');
+           
+            await fs.promise.truncate(req.filePath, 0);
+            req.pipe(fs.createWriteStream(req.filePath));
+            res.end();
+        }
+
+        let promise = updateFile();
+        promise.then(next);
+    });
+
     app.listen(PORT, () => 
         console.log(`LISTENING @ http://127.0.0.1:${PORT}`)
     );
+}
+
+function setDirInfo(req, res, next) {
+    let endsWithSlash = req.filePath.charAt(req.filePath.length - 1) === path.sep;
+    let hasExt = path.extname(req.filePath) !== '';
+
+    req.isDir = endsWithSlash || ! hasExt
+    req.dirPath = req.isDir ? req.filePath : path.dirname(req.filePath);
+    next();
 }
 
 function setFileMeta(req, res, next) {

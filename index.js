@@ -43,42 +43,34 @@ function main() {
         }
 
         // handle zip/tar
-        var requestType = req.get('Content-Type');
-        console.log(requestType)
+        var requestType = req.get('Accept');
         if (req.stat.isDirectory() && requestType === 'application/x-gtar') {
             console.log("i am in")
             let archive = archiver('zip')
 
             async function generateArchive() {
-                let output = await fs.createWriteStream(req.filePath + '/target.zip');
-                var archive = archiver('zip');
-
-                output.on('close', function () {
-                    console.log(archive.pointer() + ' total bytes');
-                    console.log('archiver has been finalized and the output file descriptor has closed.');
-                });
+                let archive = archiver('zip')
 
                 archive.on('error', function(err){
                     throw err;
                 });
-
-                archive.pipe(output);
-                archive.bulk([{
-                    expand: true,
-                    cwd: req.filePath,
-                    src: ["**/*"],
-                    dot: true
-                }]);
-                archive.finalize();
-                res.setHeader('Content-Type', 'application/x-gtar');
-                let zipFile = await fs.createReadStream(req.filePath + '/target.zip');
-                zipFile.pipe(res);
-                res.end();
-                // console.log("req filepath" + req.filePath)
                 
-                // archive.finalize();
-                // res.setHeader('Content-Type', 'application/x-gtar');
+                res.setHeader('Content-Type', 'application/x-gtar');
+                
                 // archive.pipe(res);
+                // archive.bulk([{
+                //     expand: true,
+                //     cwd: req.filePath,
+                //     src: ["**/*"],
+                //     dot: true
+                // }]);
+                // archive.finalize();
+                // res.end();
+
+                res.attachment('downloadArchive.zip');
+               archive.pipe(res);
+               archive.directory(req.filePath)
+               archive.finalize();
             }
 
             let promise = generateArchive();
@@ -150,6 +142,7 @@ function main() {
     server.listen(tcpPort);
     console.log(`TCP LISTENING @ http://127.0.0.1:8900`)
     let socket;
+    //TODO: Refactor watcher code out of 'connection' event as we dont want to execute the code for each connection
     server.on('connection', function(conn) { //This is a standard net.Socket
         socket = new JsonSocket(conn); //Now we've decorated the net.Socket to be a JsonSocket
         // One-liner for current directory, ignores .dotfiles 

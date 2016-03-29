@@ -32,8 +32,7 @@ Time spent: 12
 - [ ] User can connect to the server using an FTP client
 
 
-### Walkthrough (nodejs-dropbox-v1.gif)
-
+![Video Walkthrough](nodejs-dropbox-v1.gif)
 
 
 

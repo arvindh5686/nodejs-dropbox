@@ -1,5 +1,5 @@
 process.nextTick(() => {
-  require('safeguards').noSynchronousIO(require.main)
+ // require('safeguards').noSynchronousIO(require.main)
 })
 
 require('trycatch').configure({'long-stack-traces': true})

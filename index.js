@@ -12,10 +12,14 @@ let mime = require('mime-types')
 //let nodeify = require('bluebird-nodeify')
 let rimraf = require('rimraf')
 let mkdirp = require('mkdirp')
+let argv = require('yargs').argv
+let chokidar = require('chokidar')
+var net = require('net'),
+    JsonSocket = require('json-socket');
 
 const NODE_ENV = process.env.NODE_ENV || 'development'
 const PORT = process.env.PORT || 8000;
-const ROOT_DIR = path.resolve(process.cwd());
+const ROOT_DIR = argv.dir || path.resolve(process.cwd());
 
 function main() {
     let app = express();
@@ -36,6 +40,7 @@ function main() {
             return;
         }
 
+        console.log(res.body);
         fs.createReadStream(req.filePath).pipe(res);
     });
 
@@ -75,7 +80,6 @@ function main() {
         promise.then(next);
     });
 
-
     app.post('*', setFileMeta, setDirInfo, (req, res, next) => {
         async function updateFile () {
             if (!req.stat) return res.send(405, 'File not exists');
@@ -88,6 +92,86 @@ function main() {
 
         let promise = updateFile();
         promise.then(next);
+    });
+
+    let tcpPort = 8900;
+    let server = net.createServer();
+    server.listen(tcpPort);
+    console.log(`TCP LISTENING @ http://127.0.0.1:8900`)
+    let socket;
+    server.on('connection', function(conn) { //This is a standard net.Socket
+        socket = new JsonSocket(conn); //Now we've decorated the net.Socket to be a JsonSocket
+        // One-liner for current directory, ignores .dotfiles 
+        let watcher = chokidar.watch(ROOT_DIR, {ignored: /[\/\\]\./});
+        watcher
+          .on('add', path => {
+            path = path.substring(ROOT_DIR.length);
+            var payload = {
+                "action": "create",                          
+                "path": `${path}`,
+                "type": "file",                              
+                "updated": 1427851834642
+            }
+            socket.sendMessage(payload)
+            console.log(`File ${path} has been added`)
+           })
+          .on('change', path => {
+            path = path.substring(ROOT_DIR.length);
+            var payload = {
+                "action": "write",                          
+                "path": `${path}`,
+                "type": "file",                              
+                "updated": 1427851834642
+            }
+            socket.sendMessage(payload)
+            console.log(`File ${path} has been added`)
+           })
+          .on('unlink', path => {
+            path = path.substring(ROOT_DIR.length);
+            var payload = {
+                "action": "delete",                          
+                "path": `${path}`,
+                "type": "file",                              
+                "updated": 1427851834642
+            }
+            socket.sendMessage(payload)
+            console.log(`File ${path} has been added`)
+           })
+         
+        // More possible events. 
+        watcher
+          .on('addDir', path => {
+            path = path.substring(ROOT_DIR.length);
+            console.log("DIR" + path)
+            var payload = {
+                "action": "create",                          
+                "path": path,
+                "type": "dir",                              
+                "updated": 1427851834642
+            }
+            socket.sendMessage(payload)
+            console.log(`File ${path} has been added`)
+           })
+          .on('unlinkDir', path => {
+            path = path.substring(ROOT_DIR.length);
+            var payload = {
+                "action": "delete",                          
+                "path": `${path}`,
+                "type": "dir",                              
+                "updated": 1427851834642
+            }
+            socket.sendMessage(payload)
+            console.log(`File ${path} has been added`)
+           })
+          .on('error', error => console.log(`Watcher error: ${error}`))
+          .on('ready', () => console.log('Initial scan complete. Ready for changes'))
+          .on('raw', (event, path, details) => {
+            console.log('Raw event info:', event, path, details);
+          });
+    });
+
+    server.on('close', function() {
+        console.log('Connection closed');
     });
 
     app.listen(PORT, () => 

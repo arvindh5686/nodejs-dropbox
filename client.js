@@ -42,9 +42,16 @@ socket.on('connect', function() { //Don't send until we're connected
                     // headers: {'Accept': 'application/x-gtar'}
                 }
 
-                console.log(ROOT_DIR + path)
                 yield request(options).pipe(fs.createWriteStream(ROOT_DIR + path));
             }
+        } else if (action === 'write') {
+            let options = {
+                    method: "GET",
+                    url: 'http://127.0.0.1:8000/' + path,
+                    // headers: {'Accept': 'application/x-gtar'}
+            }
+
+            yield request(options).pipe(fs.createWriteStream(ROOT_DIR + path));
         }
     }));
 

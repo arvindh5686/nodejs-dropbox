@@ -11,7 +11,7 @@ Time spent: 12
 - [x] Walkthrough Gif embedded in README
 - [x] README `Time spent:` includes the number of hours spent on the assignment
 - [X] Client can make GET requests to get file or directory contents
-- [ ] Client can download a directory as an archive
+- [X] Client can download a directory as an archive
 - [X] Client can make HEAD request to get just the GET headers 
 - [X] Client can make PUT requests to create new directories and files with content
 - [X] Client can make POST requests to update the contents of a file
@@ -34,8 +34,8 @@ Time spent: 12
 
 ### Walkthrough
 
-`<Add your Walkthrough Gif here (by updating the image URL)>`
-![Video Walkthrough](...)
+nodejs-dropbox-v1.gif
+
 
 
 
